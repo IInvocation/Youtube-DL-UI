@@ -17,7 +17,7 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 RUN apt-get update \
- && apt-get install --no-install-recommends --no-install-suggests -y ffmpeg
+ && apt-get install --no-install-recommends --no-install-suggests -y ffmpeg youtube-dl
 
 VOLUME /download /output
 ENTRYPOINT ["dotnet", "Youtube-DL.UiServer.dll"]
