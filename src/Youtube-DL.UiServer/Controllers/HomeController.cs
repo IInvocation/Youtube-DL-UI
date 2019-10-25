@@ -6,17 +6,7 @@ namespace Youtube_DL.UiServer.Controllers
     {
         public IActionResult Index()
         {
-            var model = new IndexModel()
-            {
-                ClientIp = HttpContext.Connection.RemoteIpAddress.ToString()
-            };
-
-            return View(model);
+            return View();
         }
-    }
-
-    public class IndexModel
-    {
-        public string ClientIp { get; set; }
     }
 }
