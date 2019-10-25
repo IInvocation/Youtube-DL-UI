@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace Youtube_DL.UiServer.Controllers
 {
@@ -7,7 +6,17 @@ namespace Youtube_DL.UiServer.Controllers
     {
         public IActionResult Index()
         {
-            return View();
+            var model = new IndexModel()
+            {
+                ClientIp = HttpContext.Connection.RemoteIpAddress.ToString()
+            };
+
+            return View(model);
         }
+    }
+
+    public class IndexModel
+    {
+        public string ClientIp { get; set; }
     }
 }
