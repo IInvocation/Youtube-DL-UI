@@ -16,5 +16,8 @@ RUN dotnet publish "Youtube-DL.UiServer.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+RUN apt-get update \
+ && apt-get install --no-install-recommends --no-install-suggests -y ffmpeg
+
 VOLUME /download /output
 ENTRYPOINT ["dotnet", "Youtube-DL.UiServer.dll"]
