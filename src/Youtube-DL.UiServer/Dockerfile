@@ -4,9 +4,9 @@ EXPOSE 80
 
 FROM mcr.microsoft.com/dotnet/core/sdk:3.0-buster AS build
 WORKDIR /src
-COPY ["Youtube-DL.UiServer/Youtube-DL.UiServer.csproj", "Youtube-DL.UiServer/"]
+COPY ["Youtube-DL.UiServer.csproj", "Youtube-DL.UiServer/"]
 RUN dotnet restore "Youtube-DL.UiServer/Youtube-DL.UiServer.csproj"
-COPY . .
+COPY . "Youtube-DL.UiServer/"
 WORKDIR "/src/Youtube-DL.UiServer"
 RUN dotnet build "Youtube-DL.UiServer.csproj" -c Release -o /app/build
 
