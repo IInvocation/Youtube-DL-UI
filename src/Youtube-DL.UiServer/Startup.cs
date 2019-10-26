@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Youtube_DL.UiServer.Extensions;
 using Youtube_DL.UiServer.Localization;
 
 namespace Youtube_DL.UiServer
@@ -45,6 +46,9 @@ namespace Youtube_DL.UiServer
 
         public void ConfigureServices(IServiceCollection services)
         {
+            // StatusCodes
+            services.ConfigureStatusCodeHandler(Configuration);
+
             // MVC
             services
                 .AddMvc(mvcOptions => { 
@@ -66,9 +70,11 @@ namespace Youtube_DL.UiServer
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            app.UseForwardedHeaders();
-            app.UseStaticFiles();
-            app.UseMvc(routes =>
+            app
+            .UseForwardedHeaders()
+            .UseStaticFiles()
+            .UseStatusCodeHandler(Configuration)
+            .UseMvc(routes =>
             {
                 // ui-controllers
                 routes.MapRoute(
