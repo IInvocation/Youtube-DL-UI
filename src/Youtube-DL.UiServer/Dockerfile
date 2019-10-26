@@ -19,5 +19,5 @@ COPY --from=publish /app/publish .
 RUN apt-get update \
  && apt-get install --no-install-recommends --no-install-suggests -y ffmpeg youtube-dl
 
-VOLUME /download /output
+VOLUME /download /output /config
 ENTRYPOINT ["dotnet", "Youtube-DL.UiServer.dll"]
