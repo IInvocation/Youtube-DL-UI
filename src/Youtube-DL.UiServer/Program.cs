@@ -10,6 +10,7 @@ namespace Youtube_DL.UiServer
     {
         public static void Main(string[] args)
         {
+            Console.WriteLine("Hello");
             if (ValidateDirectories() && ValidatePrograms())
             {
                 ReportFFmpegVersion();
