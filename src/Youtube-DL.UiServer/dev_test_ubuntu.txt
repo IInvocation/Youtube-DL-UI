@@ -1,0 +1,1 @@
+﻿export CONFIG_DIR=/mnt/storage/Development/DATA/Config; export DOWNLOAD_DIR=/mnt/storage/Development/DATA/Downloads; export OUTPUT_DIR=/mnt/storage/Development/DATA/Output; export ASPNETCORE_URLS=http://localhost:5785; dotnet Youtube-DL.UiServer.dll

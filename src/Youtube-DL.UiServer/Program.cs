@@ -10,12 +10,12 @@ namespace Youtube_DL.UiServer
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("Hello");
-            if (ValidateDirectories() && ValidatePrograms())
-            {
-                ReportFFmpegVersion();
-                CreateHostBuilder(args).Build().Run();
-            }
+            if (!DirectoryHelper.ValidateDirectories() || !ProgramHelper.ValidatePrograms()) return;
+
+            ProgramHelper.ReportFFmpegVersion();
+            ProgramHelper.ReportYoutubeDlVersion();
+
+            CreateHostBuilder(args).Build().Run();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
@@ -25,104 +25,139 @@ namespace Youtube_DL.UiServer
                     webBuilder.UseStartup<Startup>();
                 });
 
-        private static bool ValidateDirectories()
-        {
-            var downloadValidated = ValidateDirectory(Environment.GetEnvironmentVariable("DOWNLOAD_DIR"), true);
-            var outputValidated = ValidateDirectory(Environment.GetEnvironmentVariable("OUTPUT_DIR"), true);
-            var configValidated = ValidateDirectory(Environment.GetEnvironmentVariable("CONFIG_DIR"), true);
-            return downloadValidated && outputValidated;
-        }
+        #region Helpers
 
-        private static bool ValidateDirectory(string directory, bool ensureWriteAccess)
+        private static class DirectoryHelper
         {
-            try
+            public static bool ValidateDirectories()
             {
-                string testContent = "test";
-                string testFile = "test.txt";
+                Console.WriteLine("Folders as configurated:");
+                Console.WriteLine($"DOWNLOAD_DIR = {Environment.GetEnvironmentVariable("DOWNLOAD_DIR")}");
+                Console.WriteLine($"OUTPUT_DIR = {Environment.GetEnvironmentVariable("OUTPUT_DIR")}");
+                Console.WriteLine($"CONFIG_DIR = {Environment.GetEnvironmentVariable("CONFIG_DIR")}");
 
-                if (!Directory.Exists(directory))
-                    return false;
-                using (var writer = File.CreateText(Path.Combine(directory, testFile)))
-                {
-                    writer.Write(testContent);
-                }
-                
-                var content = File.ReadAllText(Path.Combine(directory, testFile));
-                var result = content == testContent;
+                var downloadValidated = ValidateDirectory(Environment.GetEnvironmentVariable("DOWNLOAD_DIR"), true);
+                var outputValidated = ValidateDirectory(Environment.GetEnvironmentVariable("OUTPUT_DIR"), true);
+                var configValidated = ValidateDirectory(Environment.GetEnvironmentVariable("CONFIG_DIR"), true);
 
-                File.Delete(Path.Combine(directory, testFile));
-
-                Console.WriteLine($"Validated directory {directory}");
-                return result;
+                return downloadValidated && outputValidated;
             }
-            catch(Exception ex)
+
+            static bool ValidateDirectory(string directory, bool ensureWriteAccess)
             {
-                Console.WriteLine($"Could not validate directory {directory}");
-                Console.WriteLine(ex);
-                return false;
-            }            
+                Console.WriteLine($"Validating directory \"{directory}\", WriteAccessRequired? {ensureWriteAccess}:");
+                try
+                {
+                    const string testContent = "test";
+                    const string testFile = "test.txt";
+
+                    if (!Directory.Exists(directory))
+                    {
+                        Console.WriteLine("-> Directory does not exist.");
+                        return false;
+                    }
+
+                    var hasWriteAccess = false;
+                    if (ensureWriteAccess)
+                    {
+                        using (var writer = File.CreateText(Path.Combine(directory, testFile)))
+                        {
+                            writer.Write(testContent);
+                        }
+
+                        var content = File.ReadAllText(Path.Combine(directory, testFile));
+                        hasWriteAccess = content == testContent;
+
+                        File.Delete(Path.Combine(directory, testFile));
+                    }
+
+                    Console.WriteLine($"-> Validated directory {directory}");
+                    return !ensureWriteAccess || hasWriteAccess;
+                }
+
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"-> Could not validate directory {directory}");
+                    Console.WriteLine(ex);
+                    return false;
+                }
+            }
         }
 
-        private static bool ValidatePrograms()
+        private static class ProgramHelper
         {
-            var ffmpeg = ValidateProgram("FFMPEG_LOCATION", "ffmpeg");
-            Console.WriteLine($"Validated installation of ffmpeg, result: {ffmpeg}");
-            var youtubedl = ValidateProgram("YOUTUBE_DL_LOCATION", "youtube-dl");
-            Console.WriteLine($"Validated installation of youtubedl, result: {youtubedl}");
-
-            return ffmpeg && youtubedl;
-        }
-
-        private static bool ValidateProgram(string environmentLocation, string name)
-        {
-            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-                return ValidateProgramWindows(environmentLocation, name);
-            return ValidateProgramUnix(environmentLocation, name);
-        }
-
-        private static bool ValidateProgramWindows(string environmentLocation, string name)
-        {
-            var env = Environment.GetEnvironmentVariable(environmentLocation);
-
-            if (env == null) // examine %PATH%
+            public static bool ValidatePrograms()
             {
-                var path = Environment.GetEnvironmentVariable("PATH").Split(";", StringSplitOptions.RemoveEmptyEntries);
+                var ffmpeg = ValidateProgram("FFMPEG_LOCATION", "ffmpeg");
+                Console.WriteLine($"Validated installation of ffmpeg, result: {ffmpeg}");
+                var youtubedl = ValidateProgram("YOUTUBE_DL_LOCATION", "youtube-dl");
+                Console.WriteLine($"Validated installation of youtubedl, result: {youtubedl}");
+
+                return ffmpeg && youtubedl;
+            }
+
+            private static bool ValidateProgram(string environmentLocation, string name)
+            {
+                return Environment.OSVersion.Platform == PlatformID.Win32NT ? ValidateProgramWindows(environmentLocation, name) : ValidateProgramUnix(environmentLocation, name);
+            }
+
+            private static bool ValidateProgramWindows(string environmentLocation, string name)
+            {
+                var env = Environment.GetEnvironmentVariable(environmentLocation);
+
+                if (env != null) return File.Exists(Path.Combine(env, name + ".exe"));
+                var path = Environment.GetEnvironmentVariable("PATH")?.Split(";", StringSplitOptions.RemoveEmptyEntries);
                 return path.Any(p => File.Exists(Path.Combine(p, name + ".exe")));
             }
-            else
-            {
-                return File.Exists(Path.Combine(env, name + ".exe"));
-            }
-        }
 
-        private static bool ValidateProgramUnix(string environmentLocation, string name)
-        {
-            var env = Environment.GetEnvironmentVariable(environmentLocation);
-
-            if (env == null) // examine %PATH%
+            private static bool ValidateProgramUnix(string environmentLocation, string name)
             {
-                var path = Environment.GetEnvironmentVariable("PATH").Split(":", StringSplitOptions.RemoveEmptyEntries);
+                var env = Environment.GetEnvironmentVariable(environmentLocation);
+
+                if (env != null) return File.Exists(Path.Combine(env, name));
+                var path = Environment.GetEnvironmentVariable("PATH")?.Split(":", StringSplitOptions.RemoveEmptyEntries);
                 return path.Any(p => File.Exists(Path.Combine(p, name)));
             }
-            else
-            {
-                return File.Exists(Path.Combine(env, name));
-            }
-        }
 
-        private static void ReportFFmpegVersion()
-        {
-            using (System.Diagnostics.Process process = new System.Diagnostics.Process())
+            public static void ReportFFmpegVersion()
             {
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.FileName = "ffmpeg";
-                process.StartInfo.Arguments = "-version";
+                using var process = new System.Diagnostics.Process
+                {
+                    StartInfo =
+                    {
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        FileName = "ffmpeg",
+                        Arguments = "-version"
+                    }
+                };
+                Console.WriteLine("FFMPEG Version:");
+                process.OutputDataReceived += (sender, args) => System.Console.WriteLine(args.Data);
+                process.Start();
+                process.BeginOutputReadLine();
+                process.WaitForExit();
+            }
+
+            public static void ReportYoutubeDlVersion()
+            {
+                using var process = new System.Diagnostics.Process
+                {
+                    StartInfo =
+                    {
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        FileName = "youtube-dl",
+                        Arguments = "--version"
+                    }
+                };
+                Console.WriteLine("Youtube-DL Version:");
                 process.OutputDataReceived += (sender, args) => System.Console.WriteLine(args.Data);
                 process.Start();
                 process.BeginOutputReadLine();
                 process.WaitForExit();
             }
         }
+
+        #endregion
     }
 }
